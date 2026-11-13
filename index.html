@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Downloads</title>
+<style>
+:root{--bg:#f2f5f9;--card:#fff;--ink:#14202e;--muted:#5d6b7c;--line:#dbe2ea;--accent:#1d5fd8;--accent-ink:#fff}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1621;--card:#16212e;--ink:#e8eef5;--muted:#93a2b5;--line:#25354a;--accent:#5b95ff;--accent-ink:#0b1320}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI","Noto Sans SC","PingFang SC","Microsoft YaHei",Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:32px 16px 64px}
+.marca{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:28px;font-weight:700;font-size:1.125rem}
+.logo{width:36px;height:36px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-size:1.125rem}
+.langs{margin-left:auto;display:flex;gap:4px}
+.langs button{font:inherit;font-size:.8125rem;font-weight:600;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.langs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+footer{margin-top:28px;text-align:center;color:var(--muted);font-size:.875rem}
+h1{font-size:2rem;margin:0 0 4px;letter-spacing:-.02em}
+.sub{color:var(--muted);margin:0 0 24px}
+.search{width:100%;padding:12px 14px;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
+.search:focus-visible,.btn:focus-visible,.langs button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.count{color:var(--muted);font-size:.875rem;margin:0 0 12px}
+ul{list-style:none;margin:0;padding:0;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+li{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid var(--line)}
+li:first-child{border-top:0}
+.tag{flex:none;width:48px;height:48px;border-radius:8px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:.75rem}
+.info{flex:1;min-width:0}
+.name{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.size{color:var(--muted);font-size:.875rem}
+.btn{flex:none;padding:9px 16px;border-radius:8px;background:var(--accent);color:var(--accent-ink);font-weight:600;text-decoration:none}
+.btn:hover{filter:brightness(1.1)}
+.msg{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
+.msg h2{margin:0 0 8px;font-size:1.125rem}
+.msg p{margin:0 0 8px}
+@media(max-width:480px){.tag{width:40px;height:40px}li{gap:10px}.btn{padding:8px 12px}}
+@media(prefers-reduced-motion:no-preference){.btn{transition:filter .15s}}
+</style>
+</head>
+<body>
+<main>
+  <div class="marca">
+    <span class="logo" id="logo"></span><span id="autor"></span>
+    <div class="langs" id="langs" role="group" aria-label="Language"></div>
+  </div>
+  <h1 id="titulo"></h1>
+  <p class="sub" id="subtitulo"></p>
+  <input class="search" id="busca" type="search" hidden>
+  <p class="count" id="contagem" hidden></p>
+  <div id="area"></div>
+  <footer id="rodape"></footer>
+</main>
+
+<script>
+/* ===== CONFIG ===== */
+const CONFIG = {
+  autor: "Luckynna",   // name shown as the brand of the site and the files
+  pasta: "arquivos",   // repository folder that holds the files
+  usuario: "",         // leave empty: detected automatically on GitHub Pages
+  repositorio: "",     // leave empty: detected automatically on GitHub Pages
+  branch: "",          // leave empty to use the default branch
+  idiomaPadrao: "en"   // main language: en, zh, es or pt
+};
+/* ================== */
+
+const IDIOMAS = {
+  en: {
+    nome: "English", rotulo: "EN", html: "en",
+    titulo: "Downloads", aba: "Downloads by {a}",
+    subtitulo: "Pick a file and tap Download.",
+    rodape: "Files by {a}", busca: "Search files", baixar: "Download",
+    contar: n => n + (n === 1 ? " file" : " files"),
+    loading: ["Loading", "Fetching the file list…"],
+    nothing: ["Nothing found", "No file has that name. Try another word."],
+    notGithub: ["This site is not on GitHub yet", "This page lists the files in the “{p}” folder of your repository. It only works after it is published on GitHub Pages.", "If you use another address, fill in the user and repository fields in CONFIG at the top of the code."],
+    noFolder: ["Folder not found", "Create a folder named “{p}” in the repository and upload the files into it."],
+    empty: ["No files yet", "Upload files to the “{p}” folder of the repository and they will show up here."],
+    fail: ["Could not load the list", "Check your connection and try again in a few minutes. GitHub limits how many requests each person can make per hour."]
+  },
+  zh: {
+    nome: "中文", rotulo: "中文", html: "zh-CN",
+    titulo: "下载", aba: "{a} 的下载",
+    subtitulo: "选择文件，然后点击“下载”。",
+    rodape: "{a} 的文件", busca: "搜索文件", baixar: "下载",
+    contar: n => n + " 个文件",
+    loading: ["加载中", "正在获取文件列表…"],
+    nothing: ["没有找到", "没有文件使用这个名称，请换个词试试。"],
+    notGithub: ["网站还没有发布到 GitHub", "此页面会列出仓库中“{p}”文件夹里的文件，发布到 GitHub Pages 后才能使用。", "如果使用其他地址，请在代码开头的 CONFIG 中填写用户名和仓库名。"],
+    noFolder: ["找不到文件夹", "请在仓库中创建名为“{p}”的文件夹，并把文件上传进去。"],
+    empty: ["还没有文件", "把文件上传到仓库的“{p}”文件夹，它们就会显示在这里。"],
+    fail: ["无法加载列表", "请检查网络，几分钟后再试。GitHub 会限制每个人每小时的请求次数。"]
+  },
+  es: {
+    nome: "Español", rotulo: "ES", html: "es",
+    titulo: "Descargas", aba: "Descargas de {a}",
+    subtitulo: "Elige un archivo y toca Descargar.",
+    rodape: "Archivos de {a}", busca: "Buscar archivos", baixar: "Descargar",
+    contar: n => n + (n === 1 ? " archivo" : " archivos"),
+    loading: ["Cargando", "Buscando la lista de archivos…"],
+    nothing: ["No se encontró nada", "Ningún archivo tiene ese nombre. Prueba con otra palabra."],
+    notGithub: ["El sitio aún no está en GitHub", "Esta página muestra los archivos de la carpeta «{p}» de tu repositorio. Solo funciona después de publicarla en GitHub Pages.", "Si usas otra dirección, completa el usuario y el repositorio en CONFIG, al inicio del código."],
+    noFolder: ["No se encontró la carpeta", "Crea una carpeta llamada «{p}» en el repositorio y sube los archivos dentro de ella."],
+    empty: ["Aún no hay archivos", "Sube archivos a la carpeta «{p}» del repositorio y aparecerán aquí."],
+    fail: ["No se pudo cargar la lista", "Revisa tu conexión e inténtalo de nuevo en unos minutos. GitHub limita cuántas consultas puede hacer cada persona por hora."]
+  },
+  pt: {
+    nome: "Português (Brasil)", rotulo: "PT", html: "pt-BR",
+    titulo: "Downloads", aba: "Downloads de {a}",
+    subtitulo: "Escolha o arquivo e toque em Baixar.",
+    rodape: "Arquivos de {a}", busca: "Buscar arquivo", baixar: "Baixar",
+    contar: n => n + (n === 1 ? " arquivo" : " arquivos"),
+    loading: ["Carregando", "Buscando a lista de arquivos…"],
+    nothing: ["Nada encontrado", "Nenhum arquivo tem esse nome. Tente outra palavra."],
+    notGithub: ["O site ainda não está no GitHub", "Esta página lista os arquivos da pasta “{p}” do seu repositório. Ela só funciona depois de publicada no GitHub Pages.", "Se for usar outro endereço, preencha usuário e repositório na CONFIG, no começo do código."],
+    noFolder: ["Pasta não encontrada", "Crie a pasta “{p}” no repositório e envie os arquivos para dentro dela."],
+    empty: ["Nenhum arquivo ainda", "Envie arquivos para a pasta “{p}” do repositório e eles aparecem aqui."],
+    fail: ["Não foi possível carregar a lista", "Verifique a conexão e tente de novo em alguns minutos. O GitHub limita a quantidade de consultas por pessoa por hora."]
+  }
+};
+
+const area = document.getElementById("area");
+const busca = document.getElementById("busca");
+const contagem = document.getElementById("contagem");
+const langsBox = document.getElementById("langs");
+
+let idioma = IDIOMAS[CONFIG.idiomaPadrao] ? CONFIG.idiomaPadrao : "en";
+try {
+  const salvo = localStorage.getItem("idioma");
+  if (salvo && IDIOMAS[salvo]) idioma = salvo;
+} catch (e) {}
+
+let arquivos = [];
+let estado = "loading";   // loading, notGithub, noFolder, empty, fail, lista
+
+const T = () => IDIOMAS[idioma];
+const sub = s => s.replace("{a}", CONFIG.autor).replace("{p}", CONFIG.pasta);
+
+function detectar() {
+  const host = location.hostname;
+  let u = CONFIG.usuario, r = CONFIG.repositorio;
+  if (host.endsWith(".github.io")) {
+    if (!u) u = host.split(".")[0];
+    if (!r) {
+      const seg = location.pathname.split("/")[1];
+      r = seg && !seg.includes(".") ? seg : host;
+    }
+  }
+  return { u, r };
+}
+
+function tamanho(b) {
+  if (b < 1024) return b + " B";
+  if (b < 1048576) return (b / 1024).toFixed(0) + " KB";
+  if (b < 1073741824) return (b / 1048576).toFixed(1) + " MB";
+  return (b / 1073741824).toFixed(2) + " GB";
+}
+
+function corDaExtensao(ext) {
+  let h = 0;
+  for (const c of ext) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return "hsl(" + h + ",55%,40%)";
+}
+
+function mensagem(chave) {
+  const m = T()[chave];
+  area.replaceChildren();
+  const box = document.createElement("div");
+  box.className = "msg";
+  const h = document.createElement("h2");
+  h.textContent = sub(m[0]);
+  box.appendChild(h);
+  m.slice(1).forEach(t => {
+    const p = document.createElement("p");
+    p.textContent = sub(t);
+    box.appendChild(p);
+  });
+  area.appendChild(box);
+}
+
+function desenhar() {
+  const termo = busca.value.trim().toLowerCase();
+  const lista = arquivos.filter(a => a.name.toLowerCase().includes(termo));
+  contagem.textContent = T().contar(lista.length);
+  if (!lista.length) { mensagem("nothing"); return; }
+  const ul = document.createElement("ul");
+  lista.forEach(a => {
+    const li = document.createElement("li");
+    const ext = a.name.includes(".") ? a.name.split(".").pop().toLowerCase() : "file";
+
+    const tag = document.createElement("div");
+    tag.className = "tag";
+    tag.style.background = corDaExtensao(ext);
+    tag.textContent = ext.slice(0, 4).toUpperCase();
+
+    const info = document.createElement("div");
+    info.className = "info";
+    const nome = document.createElement("span");
+    nome.className = "name";
+    nome.textContent = a.name;
+    nome.title = a.name;
+    const tam = document.createElement("span");
+    tam.className = "size";
+    tam.textContent = tamanho(a.size);
+    info.append(nome, tam);
+
+    const btn = document.createElement("a");
+    btn.className = "btn";
+    btn.textContent = T().baixar;
+    btn.href = CONFIG.pasta + "/" + encodeURIComponent(a.name);
+    btn.setAttribute("download", a.name);
+
+    li.append(tag, info, btn);
+    ul.appendChild(li);
+  });
+  area.replaceChildren(ul);
+}
+
+function desenharTudo() {
+  if (estado === "lista") desenhar(); else mensagem(estado);
+}
+
+function aplicarIdioma() {
+  const t = T();
+  document.documentElement.lang = t.html;
+  document.title = sub(t.aba);
+  document.getElementById("autor").textContent = CONFIG.autor;
+  document.getElementById("logo").textContent = CONFIG.autor.charAt(0).toUpperCase();
+  document.getElementById("titulo").textContent = t.titulo;
+  document.getElementById("subtitulo").textContent = t.subtitulo;
+  document.getElementById("rodape").textContent = sub(t.rodape);
+  busca.placeholder = t.busca;
+  busca.setAttribute("aria-label", t.busca);
+  langsBox.querySelectorAll("button").forEach(b => {
+    b.setAttribute("aria-pressed", String(b.dataset.lang === idioma));
+  });
+  desenharTudo();
+}
+
+function montarBotoesDeIdioma() {
+  Object.keys(IDIOMAS).forEach(cod => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.lang = cod;
+    b.textContent = IDIOMAS[cod].rotulo;
+    b.title = IDIOMAS[cod].nome;
+    b.setAttribute("lang", IDIOMAS[cod].html);
+    b.addEventListener("click", () => {
+      idioma = cod;
+      try { localStorage.setItem("idioma", cod); } catch (e) {}
+      aplicarIdioma();
+    });
+    langsBox.appendChild(b);
+  });
+}
+
+async function carregar() {
+  const { u, r } = detectar();
+  if (!u || !r) { estado = "notGithub"; desenharTudo(); return; }
+  const ref = CONFIG.branch ? "?ref=" + encodeURIComponent(CONFIG.branch) : "";
+  const url = "https://api.github.com/repos/" + u + "/" + r + "/contents/" + CONFIG.pasta + ref;
+  try {
+    const resp = await fetch(url);
+    if (resp.status === 404) { estado = "noFolder"; desenharTudo(); return; }
+    if (!resp.ok) throw new Error(resp.status);
+    const dados = await resp.json();
+    arquivos = dados
+      .filter(i => i.type === "file" && !i.name.startsWith("."))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    if (!arquivos.length) { estado = "empty"; desenharTudo(); return; }
+    busca.hidden = false;
+    contagem.hidden = false;
+    estado = "lista";
+    desenharTudo();
+  } catch (e) {
+    estado = "fail";
+    desenharTudo();
+  }
+}
+
+busca.addEventListener("input", () => { if (estado === "lista") desenhar(); });
+montarBotoesDeIdioma();
+aplicarIdioma();
+carregar();
+</script>
+</body>
+</html>
